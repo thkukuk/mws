@@ -24,15 +24,15 @@ func main() {
 // mwsCmd represents the mws command
 	mwsCmd := &cobra.Command{
 		Use:   "mws",
-		Short: "Start the mini webserver",
-		Long: `Start a mini webserver.
+		Short: "Starts a Mini WebServer",
+		Long: `Starts a Mini WebServer.
 The webserver serves static web pages via http and/or https.
 If no certificates are specified, temporary ones will be created on the fly for the local hostname and localhost.
 
 The server listens by default only on port 80. If only https should be provided,
 this can be disabled with the '--http=""' option.
 `,
-		Run: mws.RunMwsCmd,
+		Run: runMwsCmd,
 		Args:  cobra.ExactArgs(0),
 	}
 
@@ -47,4 +47,8 @@ this can be disabled with the '--http=""' option.
 	if err := mwsCmd.Execute(); err != nil {
                 os.Exit(1)
         }
+}
+
+func runMwsCmd(cmd *cobra.Command, args []string) {
+	mws.RunServer()
 }

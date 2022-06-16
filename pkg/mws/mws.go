@@ -27,7 +27,6 @@ import (
 	"io/fs"
 	"crypto/tls"
 	//"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -49,7 +48,7 @@ var (
 // Webserver functions
 //
 
-func RunMwsCmd(cmd *cobra.Command, args []string) {
+func RunServer() {
 	logger := log.New(os.Stdout, "mws: ", log.LstdFlags)
 
 	if (len(ListenAddr) <= 0 && len(ListenAddrSSL) <= 0) {
