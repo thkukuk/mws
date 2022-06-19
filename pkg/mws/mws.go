@@ -70,12 +70,16 @@ func RunServer() {
 		Addr:         ListenAddr,
 		Handler:      tracing(nextRequestID)(logging(logger)(router)),
 		ErrorLog:     logger,
+		ReadTimeout: 5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	httpsServ := &http.Server{
 		Addr:         ListenAddrSSL,
 		Handler:      tracing(nextRequestID)(logging(logger)(router)),
 		ErrorLog:     logger,
+		ReadTimeout: 5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 		TLSConfig: &tls.Config{
 			MinVersion:               tls.VersionTLS13,
 			PreferServerCipherSuites: true,
