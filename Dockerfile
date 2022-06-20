@@ -14,10 +14,12 @@ LABEL org.opencontainers.image.created=$BUILDTIME
 LABEL org.opencontainers.image.version=$VERSION
 
 COPY --from=build-stage /mws/bin/mws /usr/local/bin
+COPY entrypoint.sh /
 
 EXPOSE 80/tcp 443/tcp
 
 #HEALTHCHECK --interval=60s --timeout=15s \
 #            CMD curl --fail http://localhost:8080/healthz || exit 1
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/local/bin/mws"]
