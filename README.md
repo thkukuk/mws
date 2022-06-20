@@ -14,13 +14,13 @@ this can be disabled with an empty `--http=""` option.
 ```
 
 ### Flags:
-  * `-d`, `--dir string`          directory to read files from (default ".")
-  * `-h`, `--help`                help for mws
-  *     `--http string`         address to listen on for http (default ":80")
-  *     `--https string`        address to listen on for https
-  *     `--timeout-read int`    timeout in seconds for http read (default 5)
-  *     `--timeout-write int`   timeout in seconds for http write (default 10)
-  *     `--tls-cert string`     path to the certificate file for https
-  *     `--tls-key string`      path to the key file for https
-  * `-v`, `--version`             version for mws
+  * `-d`, `--dir string`    directory to read files from (default ".")
+  * `-h`, `--help`          help for mws
+  * `--http string`         address to listen on for http (default ":80")
+  * `--https string`        address to listen on for https
+  * `--timeout-read int`    timeout in seconds for http read (default 5)
+  * `--timeout-write int`   timeout in seconds for http write (default 10)
+  * `--tls-cert string`     path to the certificate file for https
+  * `--tls-key string`      path to the key file for https
+  * `-v`, `--version`       version for mws
 
