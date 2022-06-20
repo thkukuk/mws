@@ -38,6 +38,8 @@ var (
 	HttpDir="."
         ListenAddr=":80"
         ListenAddrSSL string
+	ReadTimeout=5
+	WriteTimeout=10
         TlsKey string
         TlsCert string
 	healthy int32
@@ -70,16 +72,16 @@ func RunServer() {
 		Addr:         ListenAddr,
 		Handler:      tracing(nextRequestID)(logging(logger)(router)),
 		ErrorLog:     logger,
-		ReadTimeout: 5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  time.Duration(ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(WriteTimeout) * time.Second,
 	}
 
 	httpsServ := &http.Server{
 		Addr:         ListenAddrSSL,
 		Handler:      tracing(nextRequestID)(logging(logger)(router)),
 		ErrorLog:     logger,
-		ReadTimeout: 5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  time.Duration(ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(WriteTimeout) * time.Second,
 		TLSConfig: &tls.Config{
 			MinVersion:               tls.VersionTLS13,
 			PreferServerCipherSuites: true,

@@ -44,6 +44,9 @@ this can be disabled with the '--http=""' option.
 	mwsCmd.Flags().StringVarP(&mws.TlsKey, "tls-key", "", mws.TlsKey, "path to the key file for https")
 	mwsCmd.Flags().StringVarP(&mws.TlsCert, "tls-cert", "", mws.TlsCert, "path to the certificate file for https")
 
+	mwsCmd.Flags().IntVarP(&mws.ReadTimeout, "timeout-read", "", mws.ReadTimeout, "timeout in seconds for http read")
+	mwsCmd.Flags().IntVarP(&mws.WriteTimeout, "timeout-write", "", mws.WriteTimeout, "timeout in seconds for http write")
+
 	if err := mwsCmd.Execute(); err != nil {
                 os.Exit(1)
         }
