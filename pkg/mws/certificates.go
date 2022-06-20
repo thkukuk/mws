@@ -15,7 +15,6 @@
 package mws
 
 import (
-	"log"
 	"crypto/tls"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -49,8 +48,7 @@ func loadCertificateFromFile(tlsCert string, tlsKey string) *tls.Certificate {
 
 	cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
 	if err != nil {
-		// logger.Warn...
-		log.Printf("Could not load x509 key pair: %s", cert)
+		logerr.Printf("Could not load x509 key pair: %v\n", err)
 		return nil
 	}
 	return &cert
@@ -64,11 +62,11 @@ func getOrCreateTLSCertificate(tlsCert string, tlsKey string) tls.Certificate {
 		}
 	}
 
-	log.Printf("Key for TLS not found. Creating new one.")
+	logger.Println("Key for TLS not found. Creating new one.")
 
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		log.Fatalf("Failed to generate private key: %v", err)
+		logerr.Printf("Failed to generate private key: %v\n", err)
 	}
 
 	validFor := 365*24*time.Hour
@@ -78,7 +76,7 @@ func getOrCreateTLSCertificate(tlsCert string, tlsKey string) tls.Certificate {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		log.Fatalf("Failed to generate serial number: %v", err)
+		logerr.Fatalf("Failed to generate serial number: %v", err)
 	}
 
 	template := x509.Certificate{
@@ -107,26 +105,26 @@ func getOrCreateTLSCertificate(tlsCert string, tlsKey string) tls.Certificate {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(privateKey), privateKey)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %v", err)
+		logerr.Fatalf("Failed to create certificate: %v\n", err)
 	}
 
 	pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if pemCert == nil {
-		log.Fatal("Failed to encode certificate to PEM")
+		logerr.Fatalln("Failed to encode certificate to PEM")
 	}
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
-		log.Fatalf("Unable to marshal private key: %v", err)
+		logerr.Fatalf("Unable to marshal private key: %v\n", err)
 	}
 	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 	if pemKey == nil {
-		log.Fatal("Failed to encode key to PEM")
+		logerr.Fatalln("Failed to encode key to PEM")
 	}
 
 	cert, err := tls.X509KeyPair(pemCert, pemKey)
 	if err != nil {
-		log.Fatalf("Failed to encode private key: %s", err)
+		logerr.Fatalf("Failed to encode private key: %s\n", err)
 	}
 
 	// if err := os.WriteFile("cert.pem", pemCert, 0644); err != nil {

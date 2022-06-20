@@ -15,9 +15,9 @@
 package mws
 
 import (
+	"log"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,7 +26,6 @@ import (
 	"syscall"
 	"io/fs"
 	"crypto/tls"
-	//"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,6 +42,9 @@ var (
         TlsKey string
         TlsCert string
 	healthy int32
+	logger = log.New(os.Stdout, "", log.LstdFlags)
+	logerr = log.New(os.Stderr, "", log.LstdFlags)
+
 )
 
 
@@ -51,10 +53,9 @@ var (
 //
 
 func RunServer() {
-	logger := log.New(os.Stdout, "mws: ", log.LstdFlags)
 
 	if (len(ListenAddr) <= 0 && len(ListenAddrSSL) <= 0) {
-		logger.Fatalf("Neither a HTTP nor HTTPS port specified, aborting...\n");
+		logerr.Fatalf("Neither a HTTP nor HTTPS port specified, aborting...\n");
 	}
 
 	logger.Printf("Mini-WebServer (mws) %s is starting...\n", Version)
@@ -112,13 +113,13 @@ func RunServer() {
 		if len(ListenAddr) > 0 {
 			httpServ.SetKeepAlivesEnabled(false)
 			if err := httpServ.Shutdown(ctx); err != nil {
-				logger.Fatalf("Could not gracefully shutdown http server: %v\n", err)
+				logerr.Fatalf("Could not gracefully shutdown http server: %v\n", err)
 			}
 		}
 		if len(ListenAddrSSL) > 0 {
 			httpsServ.SetKeepAlivesEnabled(false)
 			if err := httpsServ.Shutdown(ctx); err != nil {
-				logger.Fatalf("Could not gracefully shutdown https server: %v\n", err)
+				logerr.Fatalf("Could not gracefully shutdown https server: %v\n", err)
 			}
 		}
 		close(done)
@@ -129,7 +130,7 @@ func RunServer() {
 			logger.Printf("Staring HTTP service on %s ...\n", ListenAddr)
 
 			if err := httpServ.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logger.Printf("HTTP: could not listen on %s: %v\n", ListenAddr, err)
+				logerr.Printf("HTTP: could not listen on %s: %v\n", ListenAddr, err)
 				errs <- err
 			}
 		}
@@ -140,7 +141,7 @@ func RunServer() {
 			logger.Printf("Staring HTTPS service on %s ...\n", ListenAddrSSL)
 
 			if err := httpsServ.ListenAndServeTLS("",""); err != nil && err != http.ErrServerClosed {
-				logger.Printf("HTTPS: could not listen on %s: %v\n", ListenAddrSSL, err)
+				logerr.Printf("HTTPS: could not listen on %s: %v\n", ListenAddrSSL, err)
 				errs <- err
 			}
 		}
@@ -153,7 +154,7 @@ func RunServer() {
 
 	select {
 	case <-errs:
-		logger.Fatalf("Aborting...\n")
+		logerr.Fatalln("Aborting...")
 	case <-done:
 		logger.Println("Server stopped")
 	}
