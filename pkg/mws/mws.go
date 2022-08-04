@@ -160,7 +160,6 @@ func RunServer() {
 	}
 }
 
-
 // check if the Path is a directory
 func isDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
@@ -190,6 +189,11 @@ func index() http.Handler {
 		if !isPathOk(HttpDir + r.URL.Path) {
 			// URL path is no regular file, maybe it's a directory?
 			if isDirectory(HttpDir + r.URL.Path) {
+				if r.URL.Path[len(r.URL.Path)-1:] != "/" {
+					http.Redirect (w, r, r.URL.Path + "/", 301)
+					return
+				}
+
 				// Directory, check for common index files.
 				// XXX Should be a loop over an array
 				if isPathOk(HttpDir + r.URL.Path + "/index.html") {
