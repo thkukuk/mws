@@ -57,7 +57,7 @@ func loadCertificateFromFile(tlsCert string, tlsKey string) *tls.Certificate {
 func getOrCreateTLSCertificate(tlsCert string, tlsKey string) tls.Certificate {
 
 	if tlsKey != "" && tlsCert != "" {
-		if cert := loadCertificateFromFile(tlsKey, tlsCert); cert != nil {
+		if cert := loadCertificateFromFile(tlsCert, tlsKey); cert != nil {
 			return *cert
 		}
 	}
