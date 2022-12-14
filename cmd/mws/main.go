@@ -15,10 +15,53 @@
 package main
 
 import (
+	"fmt"
+        "io/ioutil"
+        "log"
 	"os"
+
+	"gopkg.in/yaml.v3"
+
 	"github.com/spf13/cobra"
 	"github.com/thkukuk/mws/pkg/mws"
 )
+
+var (
+	configFile string
+)
+
+type Redirects struct {
+	UrlPath string `yaml:"urlpath"`
+	Target  string `yaml:"target"`
+}
+
+type Config struct {
+	HttpDir       string `yaml:"httpdir,omitempty"`
+        ListenAddr    string `yaml:"listenaddr,omitempty"`
+        ListenAddrSSL string `yaml:"listenaddrssl,omitempty"`
+	ReadTimeout   int `yaml:"readtimeout,omitempty"`
+	WriteTimeout  int `yaml:"writetimeout,omitempty"`
+        TlsKey        string `yaml:"tlskey"`
+        TlsCert       string `yaml:"tlscert"`
+	RevProxy      []Redirects `yaml:"revproxy,omitempty"`
+}
+
+func read_yaml_config(conffile string) (Config, error) {
+
+        var config Config
+
+        file, err := ioutil.ReadFile(conffile)
+        if err != nil {
+                return config, fmt.Errorf("Cannot read %q: %v", conffile, err)
+        }
+        err = yaml.Unmarshal(file, &config)
+        if err != nil {
+                return config, fmt.Errorf("Unmarshal error: %v", err)
+        }
+
+        return config, nil
+}
+
 
 func main() {
 // mwsCmd represents the mws command
@@ -38,6 +81,7 @@ this can be disabled with the '--http=""' option.
 
         mwsCmd.Version = mws.Version
 
+	mwsCmd.Flags().StringVarP(&configFile, "config", "c", configFile, "configuration file")
 	mwsCmd.Flags().StringVarP(&mws.HttpDir, "dir", "d", mws.HttpDir, "directory to read files from")
 	mwsCmd.Flags().StringVarP(&mws.ListenAddr, "http", "", mws.ListenAddr, "address to listen on for http")
 	mwsCmd.Flags().StringVarP(&mws.ListenAddrSSL, "https", "", mws.ListenAddrSSL, "address to listen on for https")
@@ -53,5 +97,44 @@ this can be disabled with the '--http=""' option.
 }
 
 func runMwsCmd(cmd *cobra.Command, args []string) {
+
+	log.Printf("Read yaml config %q\n", configFile)
+        if len(configFile) > 0 {
+                config, err := read_yaml_config(configFile)
+                if err != nil {
+                        log.Fatal(err)
+                }
+
+                if len(config.HttpDir) > 0 {
+                        mws.HttpDir = config.HttpDir
+                }
+                if len(config.ListenAddr) > 0 {
+                        mws.ListenAddr = config.ListenAddr
+                }
+                if len(config.ListenAddrSSL) > 0 {
+                        mws.ListenAddrSSL = config.ListenAddrSSL
+                }
+                if config.ReadTimeout != 0 {
+                        mws.ReadTimeout = config.ReadTimeout
+                }
+                if config.WriteTimeout != 0 {
+                        mws.WriteTimeout = config.WriteTimeout
+                }
+                if len(config.TlsKey) > 0 {
+                        mws.TlsKey = config.TlsKey
+                }
+                if len(config.TlsCert) > 0 {
+                        mws.TlsCert = config.TlsCert
+                }
+                if len(config.RevProxy) > 0 {
+                        mws.RevProxy = make([]mws.Redirects, 0, len(config.RevProxy))
+                        for i := range config.RevProxy {
+				mws.RevProxy = append(mws.RevProxy, mws.Redirects {
+					UrlPath: config.RevProxy[i].UrlPath,
+					Target: config.RevProxy[i].Target,})
+                        }
+                }
+        }
+
 	mws.RunServer()
 }

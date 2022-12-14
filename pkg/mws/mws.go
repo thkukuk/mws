@@ -19,10 +19,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync/atomic"
 	"time"
+	"strings"
 	"syscall"
 	"io/fs"
 	"crypto/tls"
@@ -31,6 +34,11 @@ import (
 const (
 	requestIDKey int = 0
 )
+
+type Redirects struct {
+        UrlPath string
+        Target  string
+}
 
 var (
 	Version="unreleased"
@@ -44,7 +52,7 @@ var (
 	healthy int32
 	logger = log.New(os.Stdout, "", log.LstdFlags)
 	logerr = log.New(os.Stderr, "", log.LstdFlags)
-
+	RevProxy []Redirects
 )
 
 
@@ -64,6 +72,18 @@ func RunServer() {
 	router := http.NewServeMux()
 	router.Handle("/", index())
 	router.Handle("/healthz", healthz())
+
+	for i := range RevProxy {
+		logger.Printf("Add reverse proxy entry: %s -> %s\n", 
+			RevProxy[i].UrlPath, RevProxy[i].Target)
+
+		// initialize a reverse proxy and pass the actual backend server url here
+		proxy, err := NewProxy(RevProxy[i].Target)
+		if err != nil {
+			panic(err)
+		}
+		router.HandleFunc(RevProxy[i].UrlPath, ProxyRequestHandler(proxy))
+	}
 
 	nextRequestID := func() string {
 		return fmt.Sprintf("%d", time.Now().UnixNano())
@@ -249,4 +269,85 @@ func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+
+//
+// Reverse Proxy functions
+//
+
+// NewProxy takes target host and creates a reverse proxy
+func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
+	target, err := url.Parse(targetHost)
+	if err != nil {
+		return nil, err
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	targetQuery := target.RawQuery
+	proxy.Director =  func(req *http.Request) {
+		req.Header.Add("X-Forwarded-Host", req.Host)
+		req.Header.Add("X-Origin-Host", target.Host)
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+     		req.URL.Path, req.URL.RawPath = joinURLPath(target, req.URL)
+     		if targetQuery == "" || req.URL.RawQuery == "" {
+     			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+     		} else {
+     			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+     		}
+    		if _, ok := req.Header["User-Agent"]; !ok {
+     			// explicitly disable User-Agent so it's not set to default value
+     			req.Header.Set("User-Agent", "")
+     		}
+	}
+	//	ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
+	//		fmt.Printf("error was: %+v", err)
+	//		rw.WriteHeader(http.StatusInternalServerError)
+	//		rw.Write([]byte(err.Error()))
+	//	},
+	//}
+
+	return proxy, nil
+}
+
+// ProxyRequestHandler handles the http request using proxy
+func ProxyRequestHandler(proxy *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
+}
+
+func joinURLPath(a, b *url.URL) (path, rawpath string) {
+     	if a.RawPath == "" && b.RawPath == "" {
+     		return singleJoiningSlash(a.Path, b.Path), ""
+     	}
+     	// Same as singleJoiningSlash, but uses EscapedPath to determine
+     	// whether a slash should be added
+     	apath := a.EscapedPath()
+     	bpath := b.EscapedPath()
+
+     	aslash := strings.HasSuffix(apath, "/")
+     	bslash := strings.HasPrefix(bpath, "/")
+
+     	switch {
+     	case aslash && bslash:
+     		return a.Path + b.Path[1:], apath + bpath[1:]
+     	case !aslash && !bslash:
+     		return a.Path + "/" + b.Path, apath + "/" + bpath
+     	}
+     	return a.Path + b.Path, apath + bpath
 }
