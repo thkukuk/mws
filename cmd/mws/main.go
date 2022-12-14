@@ -44,6 +44,7 @@ type Config struct {
         TlsKey        string `yaml:"tlskey"`
         TlsCert       string `yaml:"tlscert"`
 	RevProxy      []Redirects `yaml:"revproxy,omitempty"`
+	Quiet         bool `yaml:"quiet,omitempty"`
 }
 
 func read_yaml_config(conffile string) (Config, error) {
@@ -87,6 +88,8 @@ this can be disabled with the '--http=""' option.
 	mwsCmd.Flags().StringVarP(&mws.ListenAddrSSL, "https", "", mws.ListenAddrSSL, "address to listen on for https")
 	mwsCmd.Flags().StringVarP(&mws.TlsKey, "tls-key", "", mws.TlsKey, "path to the key file for https")
 	mwsCmd.Flags().StringVarP(&mws.TlsCert, "tls-cert", "", mws.TlsCert, "path to the certificate file for https")
+
+	mwsCmd.Flags().BoolVarP(&mws.Quiet, "quiet", "q", mws.Quiet, "don't print connection messages")
 
 	mwsCmd.Flags().IntVarP(&mws.ReadTimeout, "timeout-read", "", mws.ReadTimeout, "timeout in seconds for http read")
 	mwsCmd.Flags().IntVarP(&mws.WriteTimeout, "timeout-write", "", mws.WriteTimeout, "timeout in seconds for http write")
@@ -134,6 +137,9 @@ func runMwsCmd(cmd *cobra.Command, args []string) {
 					Target: config.RevProxy[i].Target,})
                         }
                 }
+		if config.Quiet != false {
+			mws.Quiet = config.Quiet
+		}
         }
 
 	mws.RunServer()

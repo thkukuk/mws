@@ -49,6 +49,7 @@ var (
 	WriteTimeout=10
         TlsKey string
         TlsCert string
+	Quiet=false
 	healthy int32
 	logger = log.New(os.Stdout, "", log.LstdFlags)
 	logerr = log.New(os.Stderr, "", log.LstdFlags)
@@ -74,7 +75,7 @@ func RunServer() {
 	router.Handle("/healthz", healthz())
 
 	for i := range RevProxy {
-		logger.Printf("Add reverse proxy entry: %s -> %s\n", 
+		logger.Printf("Add reverse proxy entry: %s -> %s\n",
 			RevProxy[i].UrlPath, RevProxy[i].Target)
 
 		// initialize a reverse proxy and pass the actual backend server url here
@@ -92,7 +93,7 @@ func RunServer() {
 	httpServ := &http.Server{
 		Addr:         ListenAddr,
 		Handler:      tracing(nextRequestID)(logging(logger)(router)),
-		ErrorLog:     logger,
+		ErrorLog:     logerr,
 		ReadTimeout:  time.Duration(ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(WriteTimeout) * time.Second,
 	}
@@ -246,11 +247,13 @@ func logging(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
-				requestID, ok := r.Context().Value(requestIDKey).(string)
-				if !ok {
-					requestID = "unknown"
+				if !Quiet {
+					requestID, ok := r.Context().Value(requestIDKey).(string)
+					if !ok {
+						requestID = "unknown"
+					}
+					logger.Println(requestID, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
 				}
-				logger.Println(requestID, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
 			}()
 			next.ServeHTTP(w, r)
 		})
