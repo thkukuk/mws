@@ -37,8 +37,8 @@ type Redirects struct {
 
 type Config struct {
 	HttpDir       string `yaml:"httpdir,omitempty"`
-        ListenAddr    string `yaml:"listenaddr,omitempty"`
-        ListenAddrSSL string `yaml:"listenaddrssl,omitempty"`
+        ListenAddr    string `yaml:"http,omitempty"`
+        ListenAddrSSL string `yaml:"https,omitempty"`
 	ReadTimeout   int `yaml:"readtimeout,omitempty"`
 	WriteTimeout  int `yaml:"writetimeout,omitempty"`
         TlsKey        string `yaml:"tlskey"`
@@ -101,11 +101,14 @@ this can be disabled with the '--http=""' option.
 
 func runMwsCmd(cmd *cobra.Command, args []string) {
 
-	log.Printf("Read yaml config %q\n", configFile)
+        logger := log.New(os.Stdout, "", log.LstdFlags)
+        logerr := log.New(os.Stderr, "", log.LstdFlags)
+
+	logger.Printf("Read yaml config %q\n", configFile)
         if len(configFile) > 0 {
                 config, err := read_yaml_config(configFile)
                 if err != nil {
-                        log.Fatal(err)
+                        logerr.Fatal(err)
                 }
 
                 if len(config.HttpDir) > 0 {
