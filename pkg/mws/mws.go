@@ -29,6 +29,8 @@ import (
 	"syscall"
 	"io/fs"
 	"crypto/tls"
+
+	"github.com/thkukuk/mws/pkg/certificates"
 )
 
 const (
@@ -111,7 +113,11 @@ func RunServer() {
 	}
 
 	if len(ListenAddrSSL) > 0 {
-		httpsServ.TLSConfig.Certificates = []tls.Certificate{getOrCreateTLSCertificate(TlsCert, TlsKey)}
+		cert, err := certificates.GetOrCreateTLSCertificate(TlsCert, TlsKey)
+		if err != nil {
+			logerr.Fatal(err)
+		}
+		httpsServ.TLSConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	done := make(chan bool)
