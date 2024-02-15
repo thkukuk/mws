@@ -1,12 +1,18 @@
 # mws
-Mini-Webserver (mws) - small webserver for static web pages supporting http and https written in go
+Mini-Webserver (mws) - small webserver for static web pages with reverse proxy
+support written in go
 
 ## Intro
-This webserver serves static web pages via http and/or https.
+This webserver serves static web pages via http and/or https. Additional it
+can act as reverse proxy.
 If no certificates are specified, temporary ones will be created on the fly for the local hostname and localhost.
 
 The server listens by default only on port 80. If only https should be provided,
 this can be disabled with an empty `--http=""` option.
+
+### Reverse Proxy
+
+
 
 ## Usage
 ```
@@ -14,6 +20,7 @@ this can be disabled with an empty `--http=""` option.
 ```
 
 ### Flags
+  * `-c`, `--config string` configuration file in yaml format
   * `-d`, `--dir string`    directory to read files from (default ".")
   * `-h`, `--help`          help for mws
   * `--http string`         address to listen on for http (default ":80")
@@ -23,6 +30,8 @@ this can be disabled with an empty `--http=""` option.
   * `--tls-cert string`     path to the certificate file for https
   * `--tls-key string`      path to the key file for https
   * `-v`, `--version`       version for mws
+
+### Configuration File
 
 ## Container
 

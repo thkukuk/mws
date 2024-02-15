@@ -1,0 +1,10 @@
+# listen on different ports
+http: :8080
+https: :8443
+# Certificates for https
+tlskey: certs/privkey.pem
+tlscert: certs/fullchain.pem
+# Reverseproxy, does not modify html content
+revproxy:
+  - urlpath: /admin/
+    target: http://internal.example.com:8080
