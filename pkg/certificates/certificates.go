@@ -61,6 +61,7 @@ func GetOrCreateTLSCertificate(tlsCert string, tlsKey string) (tls.Certificate, 
 		if err != nil {
 			return cert, err
 		}
+		return cert, nil
 	}
 
 	// logger.Println("Key for TLS not found. Creating new one.")
