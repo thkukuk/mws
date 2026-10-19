@@ -41,19 +41,19 @@ this can be disabled with an empty `--http=""` option.
 
 To build your own container image:
 ```
-sudo podman build --build-arg VERSION="$(cat VERSION)" --build-arg BUILDTIME=$(date +%Y-%m-%dT%TZ) -t mws .
+run0 podman build --build-arg VERSION="$(cat VERSION)" --build-arg BUILDTIME=$(date +%Y-%m-%dT%TZ) -t mws .
 ```
 
 ###
 
 Run the container image with http and https ports open, certificate is generated on the fly in memory on start:
 ```
-sudo podman run -p 80:80 -p 443:443 thkukuk/mws --https :443
+run0 podman run -p 80:80 -p 443:443 thkukuk/mws --https :443
 ```
 
 
 To specify a directory from where the static webpages are used:
 ```
-sudo podman run -p 80:80 -p 443:443 -v /srv/www:/srv/www --rm --name mws thkukuk/mws --https :443 --dir /srv/www/htdocs
+run0 podman run -p 80:80 -p 443:443 -v /srv/www:/srv/www --rm --name mws thkukuk/mws --https :443 --dir /srv/www/htdocs
 ```
 In this example we expect that on the host OS we have a directory structure below /srv/www which contains the web pages in the directory htdocs.

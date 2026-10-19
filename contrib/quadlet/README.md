@@ -22,8 +22,8 @@ temporary self-signed certificate on startup instead.
 Then reload systemd and start the generated service:
 
 ```
-sudo systemctl daemon-reload
-sudo systemctl start mws.service
+run0 systemctl daemon-reload
+run0 systemctl start mws.service
 ```
 
 Adjust `mws.container` and `mws.yaml` to taste, e.g. the `revproxy` section,
