@@ -1,0 +1,22 @@
+# Example mws configuration for use with the podman quadlet unit
+# in this directory (mws.container).
+#
+# Paths below match the volume mounts declared in mws.container:
+#   /etc/mws/certs   -> TLS certificate/key
+#   /srv/www         -> static web pages served by mws
+
+# listen on http and https
+http: :80
+https: :443
+
+# Certificates for https.
+# If this file is not mounted/present, mws will generate a temporary,
+# self-signed certificate for the local hostname and localhost instead.
+tlskey: /etc/mws/certs/privkey.pem
+tlscert: /etc/mws/certs/fullchain.pem
+
+# Example reverse proxy entry, forwards /admin/ to an internal service.
+# Remove or adjust this section if no reverse proxy is needed.
+revproxy:
+  - urlpath: /admin/
+    target: http://internal.example.com:8080

@@ -1,0 +1,51 @@
+# Example podman quadlet unit for mws, running both http and https.
+#
+# Install as a system service:
+#   run0 cp mws.container /etc/containers/systemd/mws.container
+#   run0 cp mws.yaml /etc/mws/config.yaml
+#   run0 mkdir -p /etc/mws/certs /srv/mws/htdocs
+#   # put fullchain.pem/privkey.pem in /etc/mws/certs, or remove the
+#   # tlskey/tlscert lines from mws.yaml to let mws generate a
+#   # temporary self-signed certificate instead
+#   run0 systemctl daemon-reload
+#   run0 systemctl start mws.service
+#
+# Or as a rootless user unit under ~/.config/containers/systemd/ (adjust
+# the paths above accordingly, and see the rootless note below).
+
+[Unit]
+Description=Mini-Webserver (mws) container
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=docker.io/thkukuk/mws:latest
+ContainerName=mws
+
+# Static content served by mws
+Volume=/srv/mws/htdocs:/srv/www:ro,Z
+
+# Configuration file and TLS certificate/key, see mws.yaml
+Volume=/etc/mws/config.yaml:/etc/mws/config.yaml:ro,Z
+Volume=/etc/mws/certs:/etc/mws/certs:ro,Z
+
+Exec=--config /etc/mws/config.yaml --dir /srv/www
+
+# Binding to ports below 1024 as a rootless container requires either
+# running the unit as a system (root) service, or granting the user
+# CAP_NET_BIND_SERVICE / lowering net.ipv4.ip_unprivileged_port_start.
+# Alternatively map to unprivileged host ports, e.g. PublishPort=8080:80
+# and PublishPort=8443:443.
+PublishPort=80:80
+PublishPort=443:443
+
+AddCapability=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ReadOnly=true
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target default.target
