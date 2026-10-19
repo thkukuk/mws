@@ -1,8 +1,8 @@
 FROM registry.opensuse.org/opensuse/tumbleweed:latest AS build-stage
-RUN zypper install --no-recommends --auto-agree-with-product-licenses -y git go make
+RUN zypper install --no-recommends --auto-agree-with-product-licenses -y git go meson
 #RUN git clone https://github.com/thkukuk/mws
 COPY . mws
-RUN cd mws && make update && make tidy && make
+RUN cd mws && rm -rf build && meson setup build && meson compile update -C build && meson compile tidy -C build && meson compile -C build
 
 FROM registry.opensuse.org/opensuse/busybox:latest
 LABEL maintainer="Thorsten Kukuk <kukuk@thkukuk.de>"
@@ -14,7 +14,7 @@ LABEL org.opencontainers.image.description="Mini-Webserver (mws) is a small webs
 LABEL org.opencontainers.image.created=$BUILDTIME
 LABEL org.opencontainers.image.version=$VERSION
 
-COPY --from=build-stage /mws/bin/mws /usr/local/bin
+COPY --from=build-stage /mws/build/mws /usr/local/bin
 COPY entrypoint.sh /
 
 EXPOSE 80/tcp 443/tcp
