@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 	"strings"
@@ -48,7 +49,7 @@ var (
         ListenAddr=":80"
         ListenAddrSSL string
 	ReadTimeout=5
-	WriteTimeout=10
+	WriteTimeout=300
         TlsKey string
         TlsCert string
 	Quiet=false
@@ -93,19 +94,25 @@ func RunServer() {
 	}
 
 	httpServ := &http.Server{
-		Addr:         ListenAddr,
-		Handler:      tracing(nextRequestID)(logging(logger)(router)),
-		ErrorLog:     logerr,
-		ReadTimeout:  time.Duration(ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(WriteTimeout) * time.Second,
+		Addr:              ListenAddr,
+		Handler:           tracing(nextRequestID)(logging(logger)(router)),
+		ErrorLog:          logerr,
+		ReadTimeout:       time.Duration(ReadTimeout) * time.Second,
+		ReadHeaderTimeout: time.Duration(ReadTimeout) * time.Second,
+		WriteTimeout:      time.Duration(WriteTimeout) * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
 	httpsServ := &http.Server{
-		Addr:         ListenAddrSSL,
-		Handler:      tracing(nextRequestID)(logging(logger)(router)),
-		ErrorLog:     logger,
-		ReadTimeout:  time.Duration(ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(WriteTimeout) * time.Second,
+		Addr:              ListenAddrSSL,
+		Handler:           tracing(nextRequestID)(logging(logger)(router)),
+		ErrorLog:          logerr,
+		ReadTimeout:       time.Duration(ReadTimeout) * time.Second,
+		ReadHeaderTimeout: time.Duration(ReadTimeout) * time.Second,
+		WriteTimeout:      time.Duration(WriteTimeout) * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 		TLSConfig: &tls.Config{
 			MinVersion:               tls.VersionTLS13,
 			PreferServerCipherSuites: true,
@@ -187,6 +194,34 @@ func RunServer() {
 	}
 }
 
+// safePath validates and resolves a requested path to prevent path traversal attacks
+// Returns the safe absolute path and true if valid, or empty string and false if invalid
+func safePath(baseDir, requestPath string) (string, bool) {
+	// Clean the base directory
+	base, err := filepath.Abs(baseDir)
+	if err != nil {
+		return "", false
+	}
+	base = filepath.Clean(base)
+
+	// Join and clean the requested path
+	target := filepath.Join(base, filepath.Clean("/"+requestPath))
+
+	// Ensure the target is within the base directory
+	// Use filepath.Rel to check if target is under base
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return "", false
+	}
+
+	// If rel starts with "..", it's trying to escape the base directory
+	if strings.HasPrefix(rel, "..") {
+		return "", false
+	}
+
+	return target, true
+}
+
 // check if the Path is a directory
 func isDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
@@ -213,21 +248,31 @@ func isPathOk(path string) bool {
 
 func index() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !isPathOk(HttpDir + r.URL.Path) {
+		// Validate and resolve the requested path
+		safepath, ok := safePath(HttpDir, r.URL.Path)
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		if !isPathOk(safepath) {
 			// URL path is no regular file, maybe it's a directory?
-			if isDirectory(HttpDir + r.URL.Path) {
+			if isDirectory(safepath) {
 				if r.URL.Path[len(r.URL.Path)-1:] != "/" {
 					http.Redirect (w, r, r.URL.Path + "/", 301)
 					return
 				}
 
 				// Directory, check for common index files.
-				// XXX Should be a loop over an array
-				if isPathOk(HttpDir + r.URL.Path + "/index.html") {
-					http.ServeFile(w, r, HttpDir + r.URL.Path + "/index.html")
+				indexhtml, ok := safePath(HttpDir, r.URL.Path + "/index.html")
+				if ok && isPathOk(indexhtml) {
+					http.ServeFile(w, r, indexhtml)
 					return
-				} else if isPathOk(HttpDir + r.URL.Path + "/index.htm") {
-					http.ServeFile(w, r, HttpDir + r.URL.Path + "/index.htm")
+				}
+
+				indexhtm, ok := safePath(HttpDir, r.URL.Path + "/index.htm")
+				if ok && isPathOk(indexhtm) {
+					http.ServeFile(w, r, indexhtm)
 					return
 				}
 			}
@@ -235,7 +280,7 @@ func index() http.Handler {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		http.ServeFile(w, r, HttpDir + r.URL.Path)
+		http.ServeFile(w, r, safepath)
 	})
 }
 

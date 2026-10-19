@@ -26,10 +26,12 @@ this can be disabled with an empty `--http=""` option.
   * `--http string`         address to listen on for http (default ":80")
   * `--https string`        address to listen on for https
   * `--timeout-read int`    timeout in seconds for http read (default 5)
-  * `--timeout-write int`   timeout in seconds for http write (default 10)
+  * `--timeout-write int`   timeout in seconds for http write (default 300)
   * `--tls-cert string`     path to the certificate file for https
   * `--tls-key string`      path to the key file for https
   * `-v`, `--version`       version for mws
+
+**Note:** The default write timeout of 300 seconds (5 minutes) is set to accommodate serving large files such as EFI binaries for UEFI HTTP boot over slow networks. If you're only serving small static files, you can reduce this timeout for better security.
 
 ### Configuration File
 

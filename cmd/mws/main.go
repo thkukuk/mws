@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-        "io/ioutil"
         "log"
 	"os"
 
@@ -51,13 +50,27 @@ func read_yaml_config(conffile string) (Config, error) {
 
         var config Config
 
-        file, err := ioutil.ReadFile(conffile)
+        file, err := os.ReadFile(conffile)
         if err != nil {
                 return config, fmt.Errorf("Cannot read %q: %v", conffile, err)
         }
         err = yaml.Unmarshal(file, &config)
         if err != nil {
                 return config, fmt.Errorf("Unmarshal error: %v", err)
+        }
+
+        // Validate timeout values
+        if config.ReadTimeout < 0 {
+                return config, fmt.Errorf("ReadTimeout cannot be negative: %d", config.ReadTimeout)
+        }
+        if config.WriteTimeout < 0 {
+                return config, fmt.Errorf("WriteTimeout cannot be negative: %d", config.WriteTimeout)
+        }
+        if config.ReadTimeout > 3600 {
+                return config, fmt.Errorf("ReadTimeout too large (max 3600): %d", config.ReadTimeout)
+        }
+        if config.WriteTimeout > 3600 {
+                return config, fmt.Errorf("WriteTimeout too large (max 3600): %d", config.WriteTimeout)
         }
 
         return config, nil
