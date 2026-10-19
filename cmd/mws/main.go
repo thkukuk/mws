@@ -16,7 +16,7 @@ package main
 
 import (
 	"fmt"
-        "log"
+	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -35,50 +35,49 @@ type Redirects struct {
 }
 
 type Config struct {
-	HttpDir       string `yaml:"httpdir,omitempty"`
-        ListenAddr    string `yaml:"http,omitempty"`
-        ListenAddrSSL string `yaml:"https,omitempty"`
-	ReadTimeout   int `yaml:"readtimeout,omitempty"`
-	WriteTimeout  int `yaml:"writetimeout,omitempty"`
-        TlsKey        string `yaml:"tlskey"`
-        TlsCert       string `yaml:"tlscert"`
+	HttpDir       string      `yaml:"httpdir,omitempty"`
+	ListenAddr    string      `yaml:"http,omitempty"`
+	ListenAddrSSL string      `yaml:"https,omitempty"`
+	ReadTimeout   int         `yaml:"readtimeout,omitempty"`
+	WriteTimeout  int         `yaml:"writetimeout,omitempty"`
+	TlsKey        string      `yaml:"tlskey"`
+	TlsCert       string      `yaml:"tlscert"`
 	RevProxy      []Redirects `yaml:"revproxy,omitempty"`
-	Quiet         bool `yaml:"quiet,omitempty"`
+	Quiet         bool        `yaml:"quiet,omitempty"`
 }
 
 func read_yaml_config(conffile string) (Config, error) {
 
-        var config Config
+	var config Config
 
-        file, err := os.ReadFile(conffile)
-        if err != nil {
-                return config, fmt.Errorf("Cannot read %q: %v", conffile, err)
-        }
-        err = yaml.Unmarshal(file, &config)
-        if err != nil {
-                return config, fmt.Errorf("Unmarshal error: %v", err)
-        }
+	file, err := os.ReadFile(conffile)
+	if err != nil {
+		return config, fmt.Errorf("Cannot read %q: %v", conffile, err)
+	}
+	err = yaml.Unmarshal(file, &config)
+	if err != nil {
+		return config, fmt.Errorf("Unmarshal error: %v", err)
+	}
 
-        // Validate timeout values
-        if config.ReadTimeout < 0 {
-                return config, fmt.Errorf("ReadTimeout cannot be negative: %d", config.ReadTimeout)
-        }
-        if config.WriteTimeout < 0 {
-                return config, fmt.Errorf("WriteTimeout cannot be negative: %d", config.WriteTimeout)
-        }
-        if config.ReadTimeout > 3600 {
-                return config, fmt.Errorf("ReadTimeout too large (max 3600): %d", config.ReadTimeout)
-        }
-        if config.WriteTimeout > 3600 {
-                return config, fmt.Errorf("WriteTimeout too large (max 3600): %d", config.WriteTimeout)
-        }
+	// Validate timeout values
+	if config.ReadTimeout < 0 {
+		return config, fmt.Errorf("ReadTimeout cannot be negative: %d", config.ReadTimeout)
+	}
+	if config.WriteTimeout < 0 {
+		return config, fmt.Errorf("WriteTimeout cannot be negative: %d", config.WriteTimeout)
+	}
+	if config.ReadTimeout > 3600 {
+		return config, fmt.Errorf("ReadTimeout too large (max 3600): %d", config.ReadTimeout)
+	}
+	if config.WriteTimeout > 3600 {
+		return config, fmt.Errorf("WriteTimeout too large (max 3600): %d", config.WriteTimeout)
+	}
 
-        return config, nil
+	return config, nil
 }
 
-
 func main() {
-// mwsCmd represents the mws command
+	// mwsCmd represents the mws command
 	mwsCmd := &cobra.Command{
 		Use:   "mws",
 		Short: "Starts a Mini WebServer",
@@ -89,11 +88,11 @@ If no certificates are specified, temporary ones will be created on the fly for 
 The server listens by default only on port 80. If only https should be provided,
 this can be disabled with the '--http=""' option.
 `,
-		Run: runMwsCmd,
-		Args:  cobra.ExactArgs(0),
+		Run:  runMwsCmd,
+		Args: cobra.ExactArgs(0),
 	}
 
-        mwsCmd.Version = mws.Version
+	mwsCmd.Version = mws.Version
 
 	mwsCmd.Flags().StringVarP(&configFile, "config", "c", configFile, "configuration file")
 	mwsCmd.Flags().StringVarP(&mws.HttpDir, "dir", "d", mws.HttpDir, "directory to read files from")
@@ -108,55 +107,55 @@ this can be disabled with the '--http=""' option.
 	mwsCmd.Flags().IntVarP(&mws.WriteTimeout, "timeout-write", "", mws.WriteTimeout, "timeout in seconds for http write")
 
 	if err := mwsCmd.Execute(); err != nil {
-                os.Exit(1)
-        }
+		os.Exit(1)
+	}
 }
 
 func runMwsCmd(cmd *cobra.Command, args []string) {
 
-        logger := log.New(os.Stdout, "", log.LstdFlags)
-        logerr := log.New(os.Stderr, "", log.LstdFlags)
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	logerr := log.New(os.Stderr, "", log.LstdFlags)
 
 	logger.Printf("Read yaml config %q\n", configFile)
-        if len(configFile) > 0 {
-                config, err := read_yaml_config(configFile)
-                if err != nil {
-                        logerr.Fatal(err)
-                }
+	if len(configFile) > 0 {
+		config, err := read_yaml_config(configFile)
+		if err != nil {
+			logerr.Fatal(err)
+		}
 
-                if len(config.HttpDir) > 0 {
-                        mws.HttpDir = config.HttpDir
-                }
-                if len(config.ListenAddr) > 0 {
-                        mws.ListenAddr = config.ListenAddr
-                }
-                if len(config.ListenAddrSSL) > 0 {
-                        mws.ListenAddrSSL = config.ListenAddrSSL
-                }
-                if config.ReadTimeout != 0 {
-                        mws.ReadTimeout = config.ReadTimeout
-                }
-                if config.WriteTimeout != 0 {
-                        mws.WriteTimeout = config.WriteTimeout
-                }
-                if len(config.TlsKey) > 0 {
-                        mws.TlsKey = config.TlsKey
-                }
-                if len(config.TlsCert) > 0 {
-                        mws.TlsCert = config.TlsCert
-                }
-                if len(config.RevProxy) > 0 {
-                        mws.RevProxy = make([]mws.Redirects, 0, len(config.RevProxy))
-                        for i := range config.RevProxy {
-				mws.RevProxy = append(mws.RevProxy, mws.Redirects {
+		if len(config.HttpDir) > 0 {
+			mws.HttpDir = config.HttpDir
+		}
+		if len(config.ListenAddr) > 0 {
+			mws.ListenAddr = config.ListenAddr
+		}
+		if len(config.ListenAddrSSL) > 0 {
+			mws.ListenAddrSSL = config.ListenAddrSSL
+		}
+		if config.ReadTimeout != 0 {
+			mws.ReadTimeout = config.ReadTimeout
+		}
+		if config.WriteTimeout != 0 {
+			mws.WriteTimeout = config.WriteTimeout
+		}
+		if len(config.TlsKey) > 0 {
+			mws.TlsKey = config.TlsKey
+		}
+		if len(config.TlsCert) > 0 {
+			mws.TlsCert = config.TlsCert
+		}
+		if len(config.RevProxy) > 0 {
+			mws.RevProxy = make([]mws.Redirects, 0, len(config.RevProxy))
+			for i := range config.RevProxy {
+				mws.RevProxy = append(mws.RevProxy, mws.Redirects{
 					UrlPath: config.RevProxy[i].UrlPath,
-					Target: config.RevProxy[i].Target,})
-                        }
-                }
+					Target:  config.RevProxy[i].Target})
+			}
+		}
 		if config.Quiet != false {
 			mws.Quiet = config.Quiet
 		}
-        }
+	}
 
 	mws.RunServer()
 }

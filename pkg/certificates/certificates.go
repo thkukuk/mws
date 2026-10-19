@@ -15,19 +15,19 @@
 package certificates
 
 import (
-	"crypto/tls"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"time"
 	"math/big"
 	"os"
+	"time"
 )
 
 func publicKey(key interface{}) interface{} {
@@ -71,7 +71,7 @@ func GetOrCreateTLSCertificate(tlsCert string, tlsKey string) (tls.Certificate, 
 		return cert, fmt.Errorf("Failed to generate private key: %v\n", err)
 	}
 
-	validFor := 365*24*time.Hour
+	validFor := 365 * 24 * time.Hour
 	notBefore := time.Now()
 	notAfter := notBefore.Add(validFor)
 

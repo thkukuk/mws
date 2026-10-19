@@ -15,21 +15,21 @@
 package mws
 
 import (
-	"log"
 	"context"
+	"crypto/tls"
 	"fmt"
+	"io/fs"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync/atomic"
-	"time"
 	"strings"
+	"sync/atomic"
 	"syscall"
-	"io/fs"
-	"crypto/tls"
+	"time"
 
 	"github.com/thkukuk/mws/pkg/certificates"
 )
@@ -39,26 +39,25 @@ const (
 )
 
 type Redirects struct {
-        UrlPath string
-        Target  string
+	UrlPath string
+	Target  string
 }
 
 var (
-	Version="unreleased"
-	HttpDir="."
-        ListenAddr=":80"
-        ListenAddrSSL string
-	ReadTimeout=5
-	WriteTimeout=300
-        TlsKey string
-        TlsCert string
-	Quiet=false
-	healthy int32
-	logger = log.New(os.Stdout, "", log.LstdFlags)
-	logerr = log.New(os.Stderr, "", log.LstdFlags)
-	RevProxy []Redirects
+	Version       = "unreleased"
+	HttpDir       = "."
+	ListenAddr    = ":80"
+	ListenAddrSSL string
+	ReadTimeout   = 5
+	WriteTimeout  = 300
+	TlsKey        string
+	TlsCert       string
+	Quiet         = false
+	healthy       int32
+	logger        = log.New(os.Stdout, "", log.LstdFlags)
+	logerr        = log.New(os.Stderr, "", log.LstdFlags)
+	RevProxy      []Redirects
 )
-
 
 //
 // Webserver functions
@@ -66,8 +65,8 @@ var (
 
 func RunServer() {
 
-	if (len(ListenAddr) <= 0 && len(ListenAddrSSL) <= 0) {
-		logerr.Fatalf("Neither a HTTP nor HTTPS port specified, aborting...\n");
+	if len(ListenAddr) <= 0 && len(ListenAddrSSL) <= 0 {
+		logerr.Fatalf("Neither a HTTP nor HTTPS port specified, aborting...\n")
 	}
 
 	logger.Printf("Mini-WebServer (mws) %s is starting...\n", Version)
@@ -160,7 +159,7 @@ func RunServer() {
 	}()
 
 	go func() {
-		if (len(ListenAddr) > 0) {
+		if len(ListenAddr) > 0 {
 			logger.Printf("Staring HTTP service on %s ...\n", ListenAddr)
 
 			if err := httpServ.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -171,10 +170,10 @@ func RunServer() {
 	}()
 
 	go func() {
-		if (len(ListenAddrSSL) > 0) {
+		if len(ListenAddrSSL) > 0 {
 			logger.Printf("Staring HTTPS service on %s ...\n", ListenAddrSSL)
 
-			if err := httpsServ.ListenAndServeTLS("",""); err != nil && err != http.ErrServerClosed {
+			if err := httpsServ.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				logerr.Printf("HTTPS: could not listen on %s: %v\n", ListenAddrSSL, err)
 				errs <- err
 			}
@@ -239,7 +238,7 @@ func isPathOk(path string) bool {
 	}
 
 	mode := fileInfo.Mode()
-	if (mode&fs.ModeNamedPipe != 0) {
+	if mode&fs.ModeNamedPipe != 0 {
 		return false
 	}
 
@@ -259,18 +258,18 @@ func index() http.Handler {
 			// URL path is no regular file, maybe it's a directory?
 			if isDirectory(safepath) {
 				if r.URL.Path[len(r.URL.Path)-1:] != "/" {
-					http.Redirect (w, r, r.URL.Path + "/", 301)
+					http.Redirect(w, r, r.URL.Path+"/", 301)
 					return
 				}
 
 				// Directory, check for common index files.
-				indexhtml, ok := safePath(HttpDir, r.URL.Path + "/index.html")
+				indexhtml, ok := safePath(HttpDir, r.URL.Path+"/index.html")
 				if ok && isPathOk(indexhtml) {
 					http.ServeFile(w, r, indexhtml)
 					return
 				}
 
-				indexhtm, ok := safePath(HttpDir, r.URL.Path + "/index.htm")
+				indexhtm, ok := safePath(HttpDir, r.URL.Path+"/index.htm")
 				if ok && isPathOk(indexhtm) {
 					http.ServeFile(w, r, indexhtm)
 					return
@@ -325,7 +324,6 @@ func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 	}
 }
 
-
 //
 // Reverse Proxy functions
 //
@@ -340,21 +338,21 @@ func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	targetQuery := target.RawQuery
-	proxy.Director =  func(req *http.Request) {
+	proxy.Director = func(req *http.Request) {
 		req.Header.Add("X-Forwarded-Host", req.Host)
 		req.Header.Add("X-Origin-Host", target.Host)
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-     		req.URL.Path, req.URL.RawPath = joinURLPath(target, req.URL)
-     		if targetQuery == "" || req.URL.RawQuery == "" {
-     			req.URL.RawQuery = targetQuery + req.URL.RawQuery
-     		} else {
-     			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
-     		}
-    		if _, ok := req.Header["User-Agent"]; !ok {
-     			// explicitly disable User-Agent so it's not set to default value
-     			req.Header.Set("User-Agent", "")
-     		}
+		req.URL.Path, req.URL.RawPath = joinURLPath(target, req.URL)
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
 	}
 	//	ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
 	//		fmt.Printf("error was: %+v", err)
@@ -386,22 +384,22 @@ func singleJoiningSlash(a, b string) string {
 }
 
 func joinURLPath(a, b *url.URL) (path, rawpath string) {
-     	if a.RawPath == "" && b.RawPath == "" {
-     		return singleJoiningSlash(a.Path, b.Path), ""
-     	}
-     	// Same as singleJoiningSlash, but uses EscapedPath to determine
-     	// whether a slash should be added
-     	apath := a.EscapedPath()
-     	bpath := b.EscapedPath()
+	if a.RawPath == "" && b.RawPath == "" {
+		return singleJoiningSlash(a.Path, b.Path), ""
+	}
+	// Same as singleJoiningSlash, but uses EscapedPath to determine
+	// whether a slash should be added
+	apath := a.EscapedPath()
+	bpath := b.EscapedPath()
 
-     	aslash := strings.HasSuffix(apath, "/")
-     	bslash := strings.HasPrefix(bpath, "/")
+	aslash := strings.HasSuffix(apath, "/")
+	bslash := strings.HasPrefix(bpath, "/")
 
-     	switch {
-     	case aslash && bslash:
-     		return a.Path + b.Path[1:], apath + bpath[1:]
-     	case !aslash && !bslash:
-     		return a.Path + "/" + b.Path, apath + "/" + bpath
-     	}
-     	return a.Path + b.Path, apath + bpath
+	switch {
+	case aslash && bslash:
+		return a.Path + b.Path[1:], apath + bpath[1:]
+	case !aslash && !bslash:
+		return a.Path + "/" + b.Path, apath + "/" + bpath
+	}
+	return a.Path + b.Path, apath + bpath
 }
