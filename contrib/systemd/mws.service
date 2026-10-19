@@ -25,11 +25,6 @@ ExecStart=/usr/bin/mws --config /etc/mws/config.yaml --dir /srv/mws/htdocs
 Restart=on-failure
 TimeoutStartSec=30
 
-DynamicUser=true
-# Binding to ports below 1024 as a non-root user requires this
-# capability instead of running the whole service as root.
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
