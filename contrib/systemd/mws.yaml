@@ -6,6 +6,9 @@
 http: :80
 https: :443
 
+# directroy to read the html pages from
+httpdir: /srv/mws/
+
 # Certificates for https.
 # If this file is not present, mws will generate a temporary,
 # self-signed certificate for the local hostname and localhost instead.

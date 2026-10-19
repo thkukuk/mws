@@ -6,9 +6,6 @@
 #   run0 install -D -m 0644 mws.service /etc/systemd/system/mws.service
 #   run0 install -D -m 0644 mws.yaml /etc/mws/config.yaml
 #   run0 mkdir -p /etc/mws/certs /srv/mws/htdocs
-#   # the service runs as a dynamic, unprivileged user (see DynamicUser
-#   # below), so the config, certs and served content must be world-readable
-#   run0 chmod -R o+rX /etc/mws/certs /srv/mws/htdocs /etc/mws/config.yaml
 #   # put fullchain.pem/privkey.pem in /etc/mws/certs, or remove the
 #   # tlskey/tlscert lines from /etc/mws/config.yaml to let mws generate a
 #   # temporary self-signed certificate instead
